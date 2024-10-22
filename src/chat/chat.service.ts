@@ -5,6 +5,10 @@ import { Cache } from 'cache-manager';
 import { JwtPayload } from 'src/common/types';
 import { Message, MessageModel } from 'src/models/message.model';
 import { UserSocketModel } from 'src/models/user-socket.model';
+import { HandleConnectionDto } from './dto/handleConnection.dto';
+import { SaveMessageDto } from './dto/saveMessage.dto';
+import { getRecipientSocketIdDto } from './dto/getRecipientSocketId.dto';
+import { getChatHistoryDto } from './dto/getChatHistory.dto';
 
 @Injectable()
 export class ChatService {
@@ -13,7 +17,7 @@ export class ChatService {
       @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
   ){}
 
-  async handleConnection(data: { clientId: string; token: string }) {
+  async handleConnection(data: HandleConnectionDto) {
     if (!data.token) {
         throw new UnauthorizedException('Token missing');
     }
@@ -32,9 +36,11 @@ export class ChatService {
     );
 
       console.log(`User connected: ${decoded.id}, Socket ID: ${data.clientId}`);
+
+      return { status: "successful" }
   }
   
-  async saveMessage(data: { senderId: string, payload: { to: string; message: string } }) {
+  async saveMessage(data: SaveMessageDto) {
     const newMessage = new MessageModel({
         sender: data.senderId,
         recipient: data.payload.to,
@@ -45,7 +51,7 @@ export class ChatService {
     await newMessage.save();
   }
 
-  async getRecipientSocketId(data: { to: string }) {
+  async getRecipientSocketId(data: getRecipientSocketIdDto) {
     // Get recipient socket ID from cache
     let recipientSocketId = await this.cacheManager.get<string>(data.to);
 
@@ -61,7 +67,7 @@ export class ChatService {
     return recipientSocketId;
   }
 
-  async getChatHistory(data: { userId: string }): Promise<Message[]> {
+  async getChatHistory(data: getChatHistoryDto): Promise<Message[]> {
     // Fetch chat history for the given userId
     return MessageModel.find({ 
         $or: [
